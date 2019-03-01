@@ -11,6 +11,7 @@ let s:enabled = 1
 " Global variables init {{{
 let g:Illuminate_delay = get(g:, 'Illuminate_delay', 250)
 let g:Illuminate_highlightUnderCursor = get(g:, 'Illuminate_highlightUnderCursor', 1)
+let g:Illuminate_emptySyntaxOnly = get(g:, 'Illuminate_emptySyntaxOnly', 0)
 " }}}
 
 " Exposed functions {{{
@@ -73,6 +74,23 @@ endf
 " }}}
 
 " Abstracted functions {{{
+fun! s:shouldMatchCurrent() abort
+  if exists('g:Illuminate_ftHighlightGroups') && has_key(g:Illuminate_ftHighlightGroups, &filetype)
+    if index(g:Illuminate_ftHighlightGroups[&filetype], synIDattr(synIDtrans(synID(line('.'), col('.'), 1)), 'name')) >= 0
+			return 1
+    endif
+	endif
+
+	" FIXME - doesn't work
+	if g:Illuminate_emptySyntaxOnly
+		let synName = synIDattr(synIDtrans(synID(line('.'), col('.'), 1)), 'name')
+
+		return synName == "" || synName == "Identifier"
+	endif
+
+	return 1
+endf
+
 fun! s:illuminate(...) abort
   if !s:enabled
     return
@@ -80,13 +98,10 @@ fun! s:illuminate(...) abort
 
   call s:remove_illumination()
 
-  if exists('g:Illuminate_ftHighlightGroups') && has_key(g:Illuminate_ftHighlightGroups, &filetype)
-    if index(g:Illuminate_ftHighlightGroups[&filetype], synIDattr(synIDtrans(synID(line('.'), col('.'), 1)), 'name')) >= 0
-      call s:match_word(s:get_cur_word())
-    endif
-  else
-    call s:match_word(s:get_cur_word())
-  endif
+	if s:shouldMatchCurrent()
+		call s:match_word(s:get_cur_word())
+	endif
+
   let s:previous_match = s:get_cur_word()
 endf
 
